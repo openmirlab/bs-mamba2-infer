@@ -1,0 +1,22 @@
+# Release-pinned BSMamba2 checkpoint inventory.  Weights are never bundled.
+[checkpoints.official-vocals]
+architecture = "bsmamba2-vocals"
+config = "official-vocals-v1"
+url = "https://drive.google.com/uc?export=download&id=1W-IX8I5B2g-8JA5Zaf-HkUul0MpOEBaZ"
+sha256 = "b1fcf93fdd6f7bc79e5410b1330b3d0fd5a6ca6ea23a94730c684629c71cd5ca"
+size = 770628060
+license = "NOASSERTION"
+provenance = "EuiYeonKim/BSMamba2 README pretrained-weights table; author-trained vocal checkpoint"
+source_revision = "42eb8c84a1bf0d388a994b4c29edd0d9d6a0a2b5"
+updated = "2026-07-22"
+
+[checkpoints.msst-vocals]
+architecture = "bsmamba2-vocals"
+config = "official-vocals-v1"
+url = "https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.19/bs_mamba2_vocals.ckpt"
+sha256 = "fceb733b41742abb8df563092f4cb5bbc9243c6c03e7f34dc44c14e60732c72f"
+size = 192610602
+license = "NOASSERTION"
+provenance = "ZFTurbo/Music-Source-Separation-Training v1.0.19 release asset; release says MUSDB18 100-song training"
+source_revision = "MSST v1.0.19"
+updated = "2026-07-22"

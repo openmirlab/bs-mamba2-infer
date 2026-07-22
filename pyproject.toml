@@ -1,0 +1,57 @@
+# /nav: pyproject.toml — build and dependency boundary.
+# Keeps the published core install inference-only and free of compiled Mamba
+# extensions.  The optional CUDA extra is deliberately outside that boundary.
+# Reads: src/bs_mamba2_infer/__about__.py and package data below.
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bs-mamba2-infer"
+dynamic = ["version"]
+description = "Inference-only BSMamba2 vocal source separation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Euiyeon Kim" }, { name = "Yong-Hoon Choi" }]
+maintainers = [{ name = "openmirlab" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "numpy>=1.23",
+  "soundfile>=0.12",
+  "tomli>=2.0; python_version < '3.11'",
+  "torch>=2.0",
+]
+
+[project.optional-dependencies]
+cuda = ["mamba-ssm>=2.2"]
+test = ["build>=1.2", "pytest>=8.0"]
+
+[project.scripts]
+bs-mamba2-infer = "bs_mamba2_infer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/EuiYeonKim/BSMamba2"
+Source = "https://github.com/openmirlab/bs-mamba2-infer"
+Upstream = "https://github.com/EuiYeonKim/BSMamba2"
+
+[tool.hatch.version]
+path = "src/bs_mamba2_infer/__about__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bs_mamba2_infer"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/README.md", "/CLAUDE.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

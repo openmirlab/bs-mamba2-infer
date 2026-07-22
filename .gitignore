@@ -1,0 +1,9 @@
+# /nav: local build and interpreter artifacts.
+# Keeps generated environments, bytecode, and distributions out of source
+# commits. Reads: Python tooling and hatch build output only.
+.venv/
+__pycache__/
+*.py[cod]
+dist/
+build/
+*.egg-info/

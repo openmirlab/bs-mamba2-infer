@@ -16,9 +16,11 @@ from bs_mamba2_infer import BSMamba2Session, SeparationResult, separate
 
 class _FakeModel:
     created = 0
+    backends: list[object] = []
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         type(self).created += 1
+        type(self).backends.append(kwargs.get("backend"))
 
     def load_state_dict(self, state: object, strict: bool = False) -> tuple[list[str], list[str]]:
         return [], []
@@ -35,6 +37,7 @@ def loaded_session(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> BSMamba2S
     path = tmp_path / "checkpoint.ckpt"
     torch.save({}, path)
     _FakeModel.created = 0
+    _FakeModel.backends = []
     monkeypatch.setattr(api, "BSMamba2", _FakeModel)
     monkeypatch.setattr(api, "obtain", lambda *args, **kwargs: path)
     monkeypatch.setattr(api, "separate_waveform", lambda *args, **kwargs: torch.zeros((1, 2, 8)))
@@ -55,6 +58,7 @@ def test_session_load_once_and_lifecycle(loaded_session: BSMamba2Session) -> Non
     second = loaded_session.infer(np.zeros((2, 8), np.float32), sample_rate=44100)
     assert first.vocals.shape == second.vocals.shape == (2, 8)
     assert _FakeModel.created == 1
+    assert _FakeModel.backends == ["torch"]
     assert loaded_session.status == "ready"
     loaded_session.release()
     assert loaded_session.status == "released"

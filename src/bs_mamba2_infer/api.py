@@ -109,8 +109,11 @@ class BSMamba2Session:
             }
             # `auto` selects native mamba_ssm only when that optional package is
             # installed; otherwise it keeps the default install on the pure
-            # PyTorch path even on CUDA.
-            model = BSMamba2(BSMamba2Config(), backend="auto")
+            # PyTorch path.  Native mamba_ssm kernels cannot run on CPU, so an
+            # explicit CPU session must force the portable backend even when the
+            # CUDA extra happens to be installed in the same environment.
+            backend: Literal["auto", "torch"] = "torch" if self._device.type == "cpu" else "auto"
+            model = BSMamba2(BSMamba2Config(), backend=backend)
             missing, unexpected = model.load_state_dict(state, strict=False)
             if missing or unexpected:
                 raise RuntimeError(f"Checkpoint graph is not BSMamba2-compatible (missing={missing}, unexpected={unexpected}).")

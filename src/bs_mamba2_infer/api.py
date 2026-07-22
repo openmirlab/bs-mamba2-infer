@@ -107,8 +107,10 @@ class BSMamba2Session:
                 if key.startswith("model.")
                 or not any(key.startswith(prefix) for prefix in ("featurizer.", "inverse_featurizer.", "multi_featurizer."))
             }
-            backend: Literal["native", "torch"] = "native" if self._device.type == "cuda" else "torch"
-            model = BSMamba2(BSMamba2Config(), backend=backend)
+            # `auto` selects native mamba_ssm only when that optional package is
+            # installed; otherwise it keeps the default install on the pure
+            # PyTorch path even on CUDA.
+            model = BSMamba2(BSMamba2Config(), backend="auto")
             missing, unexpected = model.load_state_dict(state, strict=False)
             if missing or unexpected:
                 raise RuntimeError(f"Checkpoint graph is not BSMamba2-compatible (missing={missing}, unexpected={unexpected}).")

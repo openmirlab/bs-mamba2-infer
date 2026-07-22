@@ -14,7 +14,7 @@ import soundfile as sf
 import torch
 
 from .audio import SAMPLE_RATE, load_audio, require_supported_audio, separate_waveform
-from .checkpoint import CheckpointSpec, checkpoint_specs, obtain, resolved_path
+from .checkpoint import CheckpointSpec, checkpoint_specs, load_payload, obtain, resolved_path
 from .model import BSMamba2, BSMamba2Config
 
 
@@ -97,7 +97,7 @@ class BSMamba2Session:
         self._status = "loading"
         try:
             path = obtain(self._spec, cache_dir=self._cache_dir, checkpoint=self._checkpoint)
-            raw = torch.load(path, map_location="cpu", weights_only=False)
+            raw = load_payload(path)
             state = raw.get("state_dict", raw) if isinstance(raw, dict) else raw
             if not isinstance(state, dict):
                 raise RuntimeError("Checkpoint does not contain a state dictionary.")

@@ -10,6 +10,7 @@ from hashlib import sha256
 from importlib import resources
 from pathlib import Path
 import os
+import pickle
 import shutil
 import tempfile
 try:  # Python 3.10 has the compatible backport in core dependencies.
@@ -18,6 +19,8 @@ except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10
     import tomli as tomllib
 from typing import Mapping
 from urllib.request import urlopen
+
+import torch
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,39 @@ class CheckpointSpec:
     provenance: str
     source_revision: str
     updated: str
+
+
+class _IgnoredOmegaConf:
+    """Compatibility sink for Lightning metadata never used by inference."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        pass
+
+    def __setstate__(self, state: object) -> None:
+        self.__dict__["state"] = state
+
+
+class _CheckpointUnpickler(pickle.Unpickler):
+    def find_class(self, module: str, name: str) -> object:
+        # The official Lightning checkpoint pickles hparams as OmegaConf. The
+        # inference loader needs only state_dict, so don't pull training config
+        # machinery into the core installation merely to discard that metadata.
+        if module.startswith("omegaconf"):
+            return _IgnoredOmegaConf
+        return super().find_class(module, name)
+
+
+class _CheckpointPickleModule:
+    Unpickler = _CheckpointUnpickler
+    load = staticmethod(pickle.load)
+    loads = staticmethod(pickle.loads)
+    dump = staticmethod(pickle.dump)
+    dumps = staticmethod(pickle.dumps)
+
+
+def load_payload(path: str | Path) -> object:
+    """Load a trusted checkpoint without importing upstream training deps."""
+    return torch.load(path, map_location="cpu", weights_only=False, pickle_module=_CheckpointPickleModule)
 
 
 def _parse_specs(text: str) -> Mapping[str, CheckpointSpec]:

@@ -34,12 +34,11 @@ class CheckpointSpec:
     updated: str
 
 
-def checkpoint_specs() -> Mapping[str, CheckpointSpec]:
-    path = resources.files("bs_mamba2_infer.config").joinpath("checkpoints.toml")
+def _parse_specs(text: str) -> Mapping[str, CheckpointSpec]:
     try:
-        raw = tomllib.loads(path.read_text(encoding="utf-8"))
+        raw = tomllib.loads(text)
         entries = raw["checkpoints"]
-    except (OSError, KeyError, tomllib.TOMLDecodeError) as exc:
+    except (KeyError, tomllib.TOMLDecodeError) as exc:
         raise RuntimeError("The packaged checkpoint registry is malformed.") from exc
     required = {"architecture", "config", "url", "sha256", "size", "license", "provenance", "source_revision", "updated"}
     result: dict[str, CheckpointSpec] = {}
@@ -48,6 +47,14 @@ def checkpoint_specs() -> Mapping[str, CheckpointSpec]:
             raise RuntimeError(f"Malformed checkpoint entry: {identifier!r}.")
         result[identifier] = CheckpointSpec(identifier=identifier, **entry)
     return result
+
+
+def checkpoint_specs() -> Mapping[str, CheckpointSpec]:
+    path = resources.files("bs_mamba2_infer.config").joinpath("checkpoints.toml")
+    try:
+        return _parse_specs(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise RuntimeError("The packaged checkpoint registry is malformed.") from exc
 
 
 def default_cache_dir() -> Path:

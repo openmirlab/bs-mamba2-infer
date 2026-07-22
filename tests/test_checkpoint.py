@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from bs_mamba2_infer.checkpoint import checkpoint_specs, obtain, resolved_path, verify
+from bs_mamba2_infer.checkpoint import _parse_specs, checkpoint_specs, obtain, resolved_path, verify
 
 
 def test_registry_contains_only_bsmamba2_vocals() -> None:
@@ -30,3 +30,9 @@ def test_checksum_failure(tmp_path: Path) -> None:
     path.write_bytes(b"not a checkpoint")
     with pytest.raises(RuntimeError, match="checksum"):
         verify(path, spec)
+
+
+@pytest.mark.parametrize("text", ["not = [valid", "[checkpoints.bad]\narchitecture = 'x'\n"])
+def test_malformed_registry_fails_clearly(text: str) -> None:
+    with pytest.raises(RuntimeError, match="Malformed|malformed"):
+        _parse_specs(text)

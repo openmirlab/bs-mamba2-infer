@@ -55,3 +55,4 @@ include = ["/src", "/tests", "/README.md", "/CLAUDE.md", "/CHANGELOG.md", "/LICE
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = ["golden: CUDA and external-fixture end-to-end regression"]

@@ -56,13 +56,25 @@ weights.
 pip install bs-mamba2-infer
 ```
 
-The default installation has no compiled Mamba dependency.  For the upstream
-CUDA execution path, install the optional accelerator compatible with your
-PyTorch/CUDA build:
+The default installation has no compiled Mamba dependency. `pip install
+'bs-mamba2-infer[cuda]'` remains a successful compatibility command, but the
+extra is deliberately empty: `mamba-ssm` omits Torch from its PEP 517 build
+metadata, so declaring it as a normal dependency makes pip and universal locks
+attempt a broken isolated build.
+
+For the optional upstream CUDA accelerator, use Linux with a compatible
+PyTorch/CUDA toolchain, install Torch first, then follow Mamba's required
+non-isolated build step:
 
 ```bash
-pip install 'bs-mamba2-infer[cuda]'
+pip install torch  # choose the wheel matching your CUDA runtime
+pip install --no-build-isolation 'mamba-ssm==2.2.2'
+pip install bs-mamba2-infer
 ```
+
+Python 3.13 remains a successful pure-PyTorch install, including with the
+`[cuda]` compatibility extra. Use an environment supported by `mamba-ssm` for
+the optional accelerated path; this package never makes it a core dependency.
 
 ## Quick start
 

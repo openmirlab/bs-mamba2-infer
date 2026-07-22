@@ -32,7 +32,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cuda = ["mamba-ssm>=2.2"]
+# mamba-ssm's PEP 517 metadata omits Torch, so a normal dependency makes both
+# pip and universal uv locks attempt a guaranteed-broken isolated build. Keep
+# this compatibility extra explicitly empty; README documents the required
+# upstream --no-build-isolation installation after Torch is present.
+cuda = []
 test = ["build>=1.2", "pytest>=8.0"]
 
 [project.scripts]

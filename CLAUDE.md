@@ -27,13 +27,24 @@ is `b1fcf93fdd6f7bc79e5410b1330b3d0fd5a6ca6ea23a94730c684629c71cd5ca`.
 Both have weight license `NOASSERTION`; code license and checkpoint terms must
 stay separate in docs and metadata.
 
+## CUDA extra contract
+
+The core package supports Python 3.10+ without native Mamba dependencies. The
+`cuda` extra is deliberately empty: mamba-ssm omits Torch from its PEP 517
+build metadata, so putting it in published dependency metadata breaks standard
+pip installs and universal locks. Native acceleration remains optional and is
+installed separately after compatible Torch with `pip install --no-build-isolation
+'mamba-ssm==2.2.2'`. The `cuda` extra therefore remains a successful
+compatibility command on Python 3.13 while the pure-Torch runtime stays the
+supported default.
+
 ## Verification
 
 ```bash
 uv run pytest -q
 python -m build
-python -m venv /tmp/bs-mamba2-wheel-venv
-/tmp/bs-mamba2-wheel-venv/bin/pip install dist/*.whl
+uv venv /tmp/bs-mamba2-wheel-venv
+uv pip install --python /tmp/bs-mamba2-wheel-venv/bin/python dist/*.whl
 /tmp/bs-mamba2-wheel-venv/bin/python -c 'import bs_mamba2_infer; print(bs_mamba2_infer.BSMamba2Session)'
 rg -n -i 'lightning|hydra|wandb|tensorboard|training_step|validation_step|dataset|evaluate' src pyproject.toml
 ```

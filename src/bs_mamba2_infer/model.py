@@ -124,7 +124,10 @@ class MambaBlock(nn.Module):
         super().__init__()
         native = _native_block(dim, layer_idx) if backend != "torch" else None
         if backend == "native" and native is None:
-            raise RuntimeError("The native backend needs `pip install bs-mamba2-infer[cuda]`.")
+            raise RuntimeError(
+                "The native backend needs mamba-ssm. Install compatible Torch, then run "
+                "`pip install --no-build-isolation 'mamba-ssm==2.2.2'`."
+            )
         self.forward_blocks = nn.ModuleList([native or _PureBlock(dim, layer_idx=layer_idx)])
         backward = _native_block(dim, layer_idx) if backend != "torch" else None
         self.backward_blocks = nn.ModuleList([backward or _PureBlock(dim, layer_idx=layer_idx)])

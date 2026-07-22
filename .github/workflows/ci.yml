@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v5
+      - run: uv run --extra test pytest -q
+      - run: uv run python -m build
+      - run: |
+          uv venv /tmp/bs-mamba2-wheel-venv
+          /tmp/bs-mamba2-wheel-venv/bin/pip install dist/*.whl
+          /tmp/bs-mamba2-wheel-venv/bin/python -c 'import bs_mamba2_infer; print(bs_mamba2_infer.BSMamba2Session)'
+      - run: |
+          ! rg -n -i 'pytorch_lightning|hydra|wandb|tensorboard|training_step|validation_step' src pyproject.toml

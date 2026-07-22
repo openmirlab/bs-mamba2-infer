@@ -1,0 +1,128 @@
+# bs-mamba2-infer
+
+Inference-only vocal separation with the BSMamba2 architecture.
+
+## Why this exists
+
+[BSMamba2](https://github.com/EuiYeonKim/BSMamba2) is Euiyeon Kim's official
+PyTorch implementation of a BSMamba2 vocal separator.  Its upstream entry
+point is tied to training-era Hydra/Lightning configuration and CUDA-only
+`mamba_ssm` installation.  This package reprovides only the runnable inference
+path as a standalone library and CLI, with a pure-PyTorch fallback and optional
+CUDA acceleration.
+
+## Acknowledgments
+
+- [Euiyeon Kim](https://github.com/EuiYeonKim) and Yong-Hoon Choi authored
+  BSMamba2 and the original [source repository](https://github.com/EuiYeonKim/BSMamba2).
+- The author-provided checkpoint is linked from the upstream
+  [pretrained-weights table](https://github.com/EuiYeonKim/BSMamba2#pretrained-weights).
+- [ZFTurbo/Music-Source-Separation-Training](https://github.com/ZFTurbo/Music-Source-Separation-Training)
+  provides the separately listed compatible MSST v1.0.19 checkpoint.
+
+## Citation
+
+```bibtex
+@article{kim2025mamba2,
+  title={Mamba2 Meets Silence: Robust Vocal Source Separation for Sparse Regions},
+  author={Kim, Euiyeon and Choi, Yong-Hoon},
+  journal={arXiv preprint arXiv:2508.14556},
+  year={2025}
+}
+```
+
+This citation is from the [primary arXiv record](https://arxiv.org/abs/2508.14556).
+
+## Features
+
+- One task: stereo vocal extraction at 44.1 kHz.
+- `separate(...)` one-shot API and load-once `BSMamba2Session` API.
+- Checksum-verified cache/download registry and manual checkpoint paths.
+- `auto`, `cpu`, `cuda`, and `cuda:N` device selection.  MPS is deliberately
+  unsupported because it has no parity evidence.
+
+## Scope
+
+Included: BSMamba2's model graph, STFT/iSTFT, chunked preprocessing,
+checkpoint/cache handling, device lifecycle, API, and CLI.
+
+Out of scope forever: Mamba v1, BS-RoFormer, TS-BSmamba2, model training,
+evaluation metrics, datasets, Lightning, Hydra, W&B, TensorBoard, and bundled
+weights.
+
+## Install
+
+```bash
+pip install bs-mamba2-infer
+```
+
+The default installation has no compiled Mamba dependency.  For the upstream
+CUDA execution path, install the optional accelerator compatible with your
+PyTorch/CUDA build:
+
+```bash
+pip install 'bs-mamba2-infer[cuda]'
+```
+
+## Quick start
+
+```python
+from bs_mamba2_infer import BSMamba2Session
+
+with BSMamba2Session(device="auto") as session:
+    result = session.infer("mixture.wav", output_path="vocals.wav")
+print(result.vocals.shape, result.sample_rate)
+```
+
+`separate("mixture.wav")` is the equivalent one-shot convenience function. It
+creates and discards a session per call; use `BSMamba2Session` when repeated
+calls should retain the loaded model. Sessions are not safe for concurrent
+`infer()` calls.
+
+Arrays are channel-first and need `sample_rate=44100`; file paths supply their
+own sample rate. Mono is duplicated to stereo. This release rejects resampling
+instead of silently changing audio.
+
+```bash
+bs-mamba2-infer mixture.wav vocals.wav --device cuda:0
+```
+
+## Checkpoints and cache
+
+The default `official-vocals` checkpoint auto-downloads to
+`~/.cache/bs-mamba2-infer/official-vocals.ckpt` and is verified against the
+SHA-256 in `config/checkpoints.toml`. Set `BS_MAMBA2_INFER_CACHE=/path/to/cache`
+or pass `cache_dir=` to move it. For air-gapped use, manually download the
+[official author archive](https://drive.google.com/file/d/1W-IX8I5B2g-8JA5Zaf-HkUul0MpOEBaZ/view?usp=sharing),
+extract `sota_model.ckpt`, and pass `checkpoint=/path/to/sota_model.ckpt`.
+
+The compatible `msst-vocals` entry comes from MSST
+[v1.0.19](https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.19).
+Both checkpoint licenses are `NOASSERTION`: the code is MIT, but no separate
+weight license was verified. Review the source terms before downstream use.
+
+## What this project will NEVER bundle
+
+No author or community checkpoint is committed to this repository, wheel, or
+sdist. They remain user-cache downloads or explicitly supplied local files.
+
+## Development
+
+```bash
+uv run pytest -q
+python -m build
+```
+
+The real golden gate needs the approved local fixtures and a CUDA environment
+with the optional `mamba_ssm` accelerator. See `CLAUDE.md` for its exact command
+and recorded environment/tolerance evidence.
+
+## License
+
+MIT; see [LICENSE](LICENSE). The implementation credits and preserves the
+upstream MIT notice. Checkpoint terms are separate and currently `NOASSERTION`.
+
+## Support
+
+Report reproducible issues with the checkpoint ID, SHA-256, Torch version,
+device, and exact input sample rate.

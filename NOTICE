@@ -1,0 +1,4 @@
+bs-mamba2-infer independently ports the inference-required BSMamba2 graph from
+EuiYeonKim/BSMamba2 at revision 42eb8c84a1bf0d388a994b4c29edd0d9d6a0a2b5.
+It is not affiliated with its authors or with ZFTurbo/Music-Source-Separation-Training.
+No model weights are bundled in this source distribution or wheel.

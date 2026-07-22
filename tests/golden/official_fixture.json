@@ -1,0 +1,13 @@
+{
+  "fixture": "MedleyDB sparse-vocal 00_mixture.wav",
+  "sample_rate": 44100,
+  "channels": 2,
+  "samples": 352800,
+  "input_sha256": "f16e02fa06824a31dd7100e36b11158d4449a1c76c77222d9a35ca11e7ec7240",
+  "checkpoint_sha256": "b1fcf93fdd6f7bc79e5410b1330b3d0fd5a6ca6ea23a94730c684629c71cd5ca",
+  "upstream_output_sha256": "f2d3699fb35dc4d7bee6ea3260508549264861010da42973a6b7cd8b9b608b06",
+  "torch_version": "2.7.1+cu126",
+  "device": "cuda",
+  "max_abs_tolerance": 0.00006103515625,
+  "rms_tolerance": 0.000015819565
+}

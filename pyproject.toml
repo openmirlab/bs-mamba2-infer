@@ -37,7 +37,7 @@ dependencies = [
 # this compatibility extra explicitly empty; README documents the required
 # upstream --no-build-isolation installation after Torch is present.
 cuda = []
-test = ["build>=1.2", "pytest>=8.0"]
+test = ["build>=1.2", "pytest>=8.0", "ruff>=0.5"]
 
 [project.scripts]
 bs-mamba2-infer = "bs_mamba2_infer.cli:main"

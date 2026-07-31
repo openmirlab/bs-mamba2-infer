@@ -156,15 +156,19 @@ across attention heads).
 
 ## Checkpoints and cache
 
-The default `official-vocals` checkpoint auto-downloads to
-`~/.cache/bs-mamba2-infer/official-vocals.ckpt` and is verified against the
-SHA-256 in `config/checkpoints.toml`. Set `BS_MAMBA2_INFER_CACHE=/path/to/cache`
-or pass `cache_dir=` to move it. For air-gapped use, manually download the
-[official author archive](https://drive.google.com/file/d/1W-IX8I5B2g-8JA5Zaf-HkUul0MpOEBaZ/view?usp=sharing),
-extract `sota_model.ckpt`, and pass `checkpoint=/path/to/sota_model.ckpt`.
-
-The compatible `msst-vocals` entry comes from MSST
+The default `msst-vocals` checkpoint auto-downloads to
+`~/.cache/bs-mamba2-infer/msst-vocals.ckpt` and is verified against the
+SHA-256 in `config/checkpoints.toml`. It comes from MSST
 [v1.0.19](https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.19).
+Set `BS_MAMBA2_INFER_CACHE=/path/to/cache` or pass `cache_dir=` to move it.
+
+The author-trained `official-vocals` entry is currently **unavailable**: its
+Google Drive link now serves an empty file (verified 2026-07-31), and this
+project does not re-host weights whose licence is unstated. The entry is kept
+in the registry with its audited SHA-256, so if you obtain
+`sota_model.ckpt` yourself (for example from a copy the author republishes),
+passing `checkpoint=/path/to/sota_model.ckpt` still verifies it byte-for-byte.
+
 Both checkpoint licenses are `NOASSERTION`: the code is MIT, but no separate
 weight license was verified. Review the source terms before downstream use.
 

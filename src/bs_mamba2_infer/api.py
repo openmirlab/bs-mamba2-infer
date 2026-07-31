@@ -79,7 +79,7 @@ class BSMamba2Session:
 
     def __init__(
         self,
-        checkpoint_id: str = "official-vocals",
+        checkpoint_id: str = "msst-vocals",
         *,
         checkpoint: str | Path | None = None,
         cache_dir: str | Path | None = None,
@@ -222,7 +222,7 @@ def separate(
     audio: str | Path | np.ndarray | torch.Tensor,
     *,
     sample_rate: int | None = None,
-    checkpoint_id: str = "official-vocals",
+    checkpoint_id: str = "msst-vocals",
     checkpoint: str | Path | None = None,
     cache_dir: str | Path | None = None,
     device: str = "auto",

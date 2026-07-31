@@ -3,12 +3,19 @@
 architecture = "bsmamba2-vocals"
 config = "official-vocals-v1"
 url = "https://drive.google.com/uc?export=download&id=1W-IX8I5B2g-8JA5Zaf-HkUul0MpOEBaZ"
+# The author-linked Google Drive URL now serves a genuine 0-byte file (verified
+# 2026-07-31: its sha256 is the empty-string hash). Marked unavailable rather
+# than deleted: the audited sha256 below still verifies a locally supplied copy
+# via the `checkpoint=` override, and re-hosting is blocked on a licence
+# decision -- the weights carry NOASSERTION, and redistribution without an
+# upstream grant is not ours to decide (org constitution, articles 4 and 8).
+status = "unavailable"
 sha256 = "b1fcf93fdd6f7bc79e5410b1330b3d0fd5a6ca6ea23a94730c684629c71cd5ca"
 size = 770628060
 license = "NOASSERTION"
 provenance = "EuiYeonKim/BSMamba2 README pretrained-weights table; author-trained vocal checkpoint"
 source_revision = "42eb8c84a1bf0d388a994b4c29edd0d9d6a0a2b5"
-updated = "2026-07-22"
+updated = "2026-07-31"
 
 [checkpoints.msst-vocals]
 architecture = "bsmamba2-vocals"

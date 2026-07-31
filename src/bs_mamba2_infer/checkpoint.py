@@ -29,6 +29,9 @@ class CheckpointSpec:
     architecture: str
     config: str
     url: str
+    #: "available" (default) or "unavailable" -- a dead upstream URL whose
+    #: audited sha256 is retained so a locally supplied copy still verifies.
+    status: str
     sha256: str
     size: int
     license: str
@@ -81,7 +84,9 @@ def _parse_specs(text: str) -> Mapping[str, CheckpointSpec]:
     for identifier, entry in entries.items():
         if not isinstance(entry, dict) or required - entry.keys() or len(str(entry.get("sha256", ""))) != 64:
             raise RuntimeError(f"Malformed checkpoint entry: {identifier!r}.")
-        result[identifier] = CheckpointSpec(identifier=identifier, **entry)
+        entry = dict(entry)
+        status = entry.pop("status", "available")
+        result[identifier] = CheckpointSpec(identifier=identifier, status=status, **entry)
     return result
 
 
@@ -123,6 +128,17 @@ def verify(path: Path, spec: CheckpointSpec) -> Path:
 
 
 def obtain(spec: CheckpointSpec, *, cache_dir: str | Path | None = None, checkpoint: str | Path | None = None) -> Path:
+    if spec.status == "unavailable" and checkpoint is None:
+        cached = resolved_path(spec, cache_dir=cache_dir)
+        if cached is not None:
+            return verify(cached, spec)
+        raise RuntimeError(
+            f"Checkpoint {spec.identifier!r} is marked unavailable: its upstream URL is "
+            f"dead (the author-linked Google Drive serves a 0-byte file) and re-hosting "
+            f"is blocked on a licence decision (weights are NOASSERTION). Use "
+            f"checkpoint_id='msst-vocals' (the working MSST release asset), or supply a "
+            f"locally obtained copy via checkpoint=... -- its sha256 is still verified."
+        )
     found = resolved_path(spec, cache_dir=cache_dir, checkpoint=checkpoint)
     if found is not None:
         return verify(found, spec)

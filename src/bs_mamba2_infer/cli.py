@@ -12,7 +12,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Extract vocals with a compatible BSMamba2 checkpoint.")
     parser.add_argument("input", help="44.1 kHz mono or stereo audio file")
     parser.add_argument("output", help="destination WAV file")
-    parser.add_argument("--checkpoint-id", default="official-vocals")
+    parser.add_argument("--checkpoint-id", default="msst-vocals")
     parser.add_argument("--checkpoint", help="manual checkpoint path (including offline MSST checkpoint)")
     parser.add_argument("--cache-dir")
     parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N (backend=mlx only accepts auto/mps)")

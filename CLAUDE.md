@@ -74,8 +74,13 @@ contract).
 
 ## Checkpoint facts
 
-`official-vocals` is the author-linked Drive checkpoint; its local audited SHA-256
-is `b1fcf93fdd6f7bc79e5410b1330b3d0fd5a6ca6ea23a94730c684629c71cd5ca`.
+`official-vocals` is the author-linked Drive checkpoint, now marked
+`status = "unavailable"`: the Drive URL serves a genuine 0-byte file (verified
+2026-07-31). Its audited SHA-256
+`b1fcf93fdd6f7bc79e5410b1330b3d0fd5a6ca6ea23a94730c684629c71cd5ca` is retained
+so a locally supplied copy still verifies via `checkpoint=`. Re-hosting is
+blocked on a licence decision (NOASSERTION weights; constitution articles 4/8).
+The session/CLI default is now `msst-vocals`.
 `msst-vocals` is the MSST v1.0.19 release asset with audited SHA-256
 `fceb733b41742abb8df563092f4cb5bbc9243c6c03e7f34dc44c14e60732c72f`.
 Both have weight license `NOASSERTION`; code license and checkpoint terms must

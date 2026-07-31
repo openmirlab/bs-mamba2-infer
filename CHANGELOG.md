@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Default checkpoint switched to msst-vocals; official-vocals marked unavailable
+
+- **Behavior change, called out deliberately** (allowed by article 7: this
+  package has never been published, so its surface owes no compatibility):
+  the session/CLI default `checkpoint_id` is now `msst-vocals`. The previous
+  default, `official-vocals`, has a dead upstream: its author-linked Google
+  Drive URL serves a genuine 0-byte file (verified 2026-07-31 -- the download's
+  sha256 is the empty-string hash).
+- `official-vocals` is marked `status = "unavailable"` rather than deleted:
+  its audited SHA-256 is retained, so a locally obtained copy passed via
+  `checkpoint=` still verifies byte-for-byte. `obtain()` refuses the download
+  path loudly, naming the cause and the working alternative.
+- Re-hosting the weights ourselves is deliberately NOT done: they carry
+  `NOASSERTION` (no upstream licence statement), and redistributing unlicensed
+  weights is not this package's call. Asking the author for a grant is the
+  recorded follow-up.
+
 - **CONTRACT CHANGE**, called out deliberately per article 8: `device="mps"`
   previously raised `ValueError` and `tests/test_contract.py` asserted that
   it must (`test_mps_is_not_claimed`). That negative contract is reversed on

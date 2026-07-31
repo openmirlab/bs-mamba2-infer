@@ -34,6 +34,9 @@ class _FakeModel:
 
 @pytest.fixture()
 def loaded_session(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> BSMamba2Session:
+    # Hermetic: cache_info() consults the real cache dir; without this, a
+    # checkpoint genuinely present in ~/.cache flips its answers.
+    monkeypatch.setenv("BS_MAMBA2_INFER_CACHE", str(tmp_path / "empty-cache"))
     path = tmp_path / "checkpoint.ckpt"
     torch.save({}, path)
     _FakeModel.created = 0
@@ -77,7 +80,7 @@ def test_session_load_once_and_lifecycle(loaded_session: BSMamba2Session) -> Non
 
 def test_cache_info_does_not_download(loaded_session: BSMamba2Session) -> None:
     info = loaded_session.cache_info()
-    assert info["checkpoint_id"] == "official-vocals"
+    assert info["checkpoint_id"] == "msst-vocals"
     assert info["cached"] is False
 
 
@@ -147,6 +150,7 @@ def test_obtain_hashes_the_complete_download(tmp_path, monkeypatch):
         identifier = "regression-probe"
         url = "http://example.invalid/probe.ckpt"
         sha256 = digest
+        status = "available"
 
     monkeypatch.setattr(checkpoint_module, "urlopen", lambda url: io.BytesIO(payload))
 

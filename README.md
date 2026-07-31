@@ -101,7 +101,7 @@ instead of silently changing audio.
 bs-mamba2-infer mixture.wav vocals.wav --device cuda:0
 ```
 
-## Backends (Torch / MLX)
+## Backends and devices
 
 Two independent choices:
 
@@ -114,7 +114,9 @@ Two independent choices:
 `mlx` only when it is genuinely importable on this machine, falling back to
 `torch` otherwise. Requesting a backend that cannot run here raises
 immediately — before any checkpoint is downloaded — rather than quietly
-using a different one.
+using a different one. `backend="mlx"` owns its own Apple Silicon execution
+and accepts only `device` of `auto`/`mps` (or none), refusing anything else
+rather than ignoring it.
 
 ### The MLX backend
 
@@ -139,16 +141,31 @@ bs-mamba2-infer mixture.wav vocals.wav --backend mlx
 `backend="mlx"` accepts only `device` of `None`, `"auto"`, or `"mps"` and
 raises for anything else (`"cuda"`, `"cpu"`, ...) rather than reinterpreting
 it — MLX owns its own execution target, Torch device strings mean nothing to
-it. Needs an arm64 Python interpreter; under Rosetta, MLX and this backend
-report as unavailable rather than failing loudly, which reads as broken
-rather than misconfigured.
+it.
+
+MPS and MLX both need an **arm64 Python interpreter**. Under Rosetta/x86_64
+they report as unavailable rather than failing loudly — an x86_64
+interpreter makes `torch.backends.mps.is_available()` return `False`, and
+MLX fails to run correctly, so an accelerated path just looks absent rather
+than misconfigured. This is easy to hit without noticing: an x86_64 `uv`
+resolves x86_64 interpreters, so `uv sync` can silently produce an
+environment where the accelerated paths structurally cannot exist. Check
+with `python -c "import platform; print(platform.machine())"` — it must
+print `arm64`.
 
 Torch-vs-MLX parity, measured on the real `msst-vocals` checkpoint through
 this public API, including a zero-padded-tail and a near-silent-tail case
 (every track's final chunk is zero-padded in practice — see
-`tests/test_mlx_parity.py`): TODO_PARITY_NUMBERS.
+`tests/test_mlx_parity.py`): not yet measured and recorded end to end on
+real audio through the public API (the `realweights`-marked parity test
+exists but has not been run against the real checkpoint); the closest
+available evidence is a synthetic small-model check of the rfft-zero guard
+alone, which found it already at ordinary float32 noise floor (`max_abs`
+3.96e-09 with the guard vs. 5.82e-09 without, on a zero-padded fixture — see
+`tests/test_mlx_parity.py`'s module docstring), not a substitute for full
+Torch-vs-MLX parity.
 
-Speed: TODO_SPEED_NUMBER — the Mamba2 recurrence is a per-timestep Python
+Speed: not yet benchmarked. The Mamba2 recurrence is a per-timestep Python
 loop (no fused CUDA/Triton kernel exists for MLX), so this is inherently
 loop-bound on both frameworks; see `mlx/model.py`'s module docstring for the
 one deliberate, verified-safe optimization taken (vectorizing the recurrence

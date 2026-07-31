@@ -40,7 +40,11 @@ def loaded_session(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> BSMamba2S
     _FakeModel.backends = []
     monkeypatch.setattr(api, "BSMamba2", _FakeModel)
     monkeypatch.setattr(api, "obtain", lambda *args, **kwargs: path)
-    monkeypatch.setattr(api, "separate_waveform", lambda *args, **kwargs: torch.zeros((1, 2, 8)))
+    # separate_waveform is called from backends/torch_backend.py now (moved
+    # behind the backend seam, see backends/base.py) -- not from api.py.
+    import bs_mamba2_infer.backends.torch_backend as torch_backend_module
+
+    monkeypatch.setattr(torch_backend_module, "separate_waveform", lambda *args, **kwargs: torch.zeros((1, 2, 8)))
     return BSMamba2Session(device="cpu")
 
 
@@ -84,12 +88,69 @@ def test_unavailable_cuda_is_not_silently_replaced(device: str, monkeypatch: pyt
         BSMamba2Session(device=device)
 
 
-def test_mps_is_not_claimed() -> None:
-    with pytest.raises(ValueError, match="MPS"):
-        BSMamba2Session(device="mps")
+def test_explicit_mps_resolves_when_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(api, "mps_available", lambda: True)
+    assert api._resolve_device("mps") == torch.device("mps")
+
+
+def test_explicit_mps_raises_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An explicit accelerator is honoured or the call fails -- never downgraded."""
+    monkeypatch.setattr(api, "mps_available", lambda: False)
+    with pytest.raises(RuntimeError, match="mps"):
+        api._resolve_device("mps")
+
+
+def test_auto_never_promotes_to_mps(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Legacy auto-selection is preserved (D8): MPS is opt-in, so existing Mac
+    callers keep the exact compute path -- and the exact outputs -- they had
+    before MPS support existed."""
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(api, "mps_available", lambda: True)
+    assert api._resolve_device("auto") == torch.device("cpu")
+
+
+def test_mps_indexed_device_is_rejected() -> None:
+    """MPS has no CUDA-style indexed devices; 'mps:0' must not be silently
+    accepted as if it meant plain 'mps'."""
+    with pytest.raises(ValueError, match="mps"):
+        api._resolve_device("mps:0")
 
 
 def test_array_needs_rate(loaded_session: BSMamba2Session) -> None:
     loaded_session.load()
     with pytest.raises(ValueError, match="sample_rate"):
         loaded_session.infer(np.zeros((2, 8), np.float32))
+
+
+def test_obtain_hashes_the_complete_download(tmp_path, monkeypatch):
+    """A partial final write must not be hashed as if it were the whole file.
+
+    obtain() writes through a buffered handle and then calls verify(), which
+    re-opens the path and hashes what is on disk. Without an explicit flush,
+    anything still in the write buffer is simply absent from those bytes, so the
+    download fails its own checksum against a truncated file.
+
+    The trigger is size-dependent, which is why it survived: shutil.copyfileobj
+    writes 64 KiB at a time and writes that large pass straight through the
+    buffer, so a payload whose size happens to align leaves no residue. This
+    fixture ends with a small partial write on purpose.
+    """
+    import hashlib
+    import io
+
+    from bs_mamba2_infer import checkpoint as checkpoint_module
+
+    payload = bytes(range(256)) * 4096 + b"x" * 100
+    digest = hashlib.sha256(payload).hexdigest()
+
+    class _Spec:
+        identifier = "regression-probe"
+        url = "http://example.invalid/probe.ckpt"
+        sha256 = digest
+
+    monkeypatch.setattr(checkpoint_module, "urlopen", lambda url: io.BytesIO(payload))
+
+    resolved = checkpoint_module.obtain(_Spec(), cache_dir=tmp_path)
+
+    assert resolved.stat().st_size == len(payload)
+    assert hashlib.sha256(resolved.read_bytes()).hexdigest() == digest

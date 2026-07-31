@@ -38,8 +38,10 @@ This citation is from the [primary arXiv record](https://arxiv.org/abs/2508.1455
 - One task: stereo vocal extraction at 44.1 kHz.
 - `separate(...)` one-shot API and load-once `BSMamba2Session` API.
 - Checksum-verified cache/download registry and manual checkpoint paths.
-- `auto`, `cpu`, `cuda`, and `cuda:N` device selection.  MPS is deliberately
-  unsupported because it has no parity evidence.
+- `auto`, `cpu`, `cuda`, `cuda:N`, and `mps` device selection. `auto` stays
+  cuda-else-cpu deliberately (MPS is opt-in, never auto-promoted — see
+  CHANGELOG for the measured CPU-vs-MPS parity that lifted the earlier
+  MPS refusal).
 
 ## Scope
 
@@ -98,6 +100,59 @@ instead of silently changing audio.
 ```bash
 bs-mamba2-infer mixture.wav vocals.wav --device cuda:0
 ```
+
+## Backends (Torch / MLX)
+
+Two independent choices:
+
+| Argument | Values | Meaning |
+|---|---|---|
+| `backend` | `torch` (default), `mlx`, `auto` | which framework computes |
+| `device` | `auto`, `cpu`, `cuda`, `cuda:N`, `mps` | where Torch computes (backend="torch" only) |
+
+`backend` defaults to `torch`, so nothing changes unless you ask. `auto` picks
+`mlx` only when it is genuinely importable on this machine, falling back to
+`torch` otherwise. Requesting a backend that cannot run here raises
+immediately — before any checkpoint is downloaded — rather than quietly
+using a different one.
+
+### The MLX backend
+
+Native Apple Silicon execution through [MLX](https://github.com/ml-explore/mlx)
+and [mlx-spectro](https://github.com/ssmall256/mlx-spectro) for STFT/iSTFT —
+a from-scratch port of this package's own Mamba2 graph (there is no upstream
+MLX BSMamba2 to vendor). Install it with the extra, never part of the core
+install:
+
+```bash
+pip install "bs-mamba2-infer[mlx]"
+```
+
+```python
+BSMamba2Session(backend="mlx").load()
+```
+
+```bash
+bs-mamba2-infer mixture.wav vocals.wav --backend mlx
+```
+
+`backend="mlx"` accepts only `device` of `None`, `"auto"`, or `"mps"` and
+raises for anything else (`"cuda"`, `"cpu"`, ...) rather than reinterpreting
+it — MLX owns its own execution target, Torch device strings mean nothing to
+it. Needs an arm64 Python interpreter; under Rosetta, MLX and this backend
+report as unavailable rather than failing loudly, which reads as broken
+rather than misconfigured.
+
+Torch-vs-MLX parity, measured on the real `msst-vocals` checkpoint through
+this public API, including a zero-padded-tail and a near-silent-tail case
+(every track's final chunk is zero-padded in practice — see
+`tests/test_mlx_parity.py`): TODO_PARITY_NUMBERS.
+
+Speed: TODO_SPEED_NUMBER — the Mamba2 recurrence is a per-timestep Python
+loop (no fused CUDA/Triton kernel exists for MLX), so this is inherently
+loop-bound on both frameworks; see `mlx/model.py`'s module docstring for the
+one deliberate, verified-safe optimization taken (vectorizing the recurrence
+across attention heads).
 
 ## Checkpoints and cache
 

@@ -138,6 +138,11 @@ def obtain(spec: CheckpointSpec, *, cache_dir: str | Path | None = None, checkpo
         try:
             with urlopen(spec.url) as response:
                 shutil.copyfileobj(response, temporary)
+            # Flush before hashing. verify() re-opens the path and reads what is
+            # on disk, so anything still sitting in this handle's write buffer is
+            # simply absent from the bytes it hashes -- every download failed its
+            # own checksum against a truncated file.
+            temporary.flush()
             verify(temporary_path, spec)
             temporary_path.replace(destination)
         except BaseException:

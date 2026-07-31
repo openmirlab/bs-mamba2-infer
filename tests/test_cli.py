@@ -10,4 +10,21 @@ def test_cli_forwards_public_options(monkeypatch: object) -> None:
     received: dict[str, object] = {}
     monkeypatch.setattr(cli, "separate", lambda audio, **kwargs: received.update(audio=audio, **kwargs))
     assert cli.main(["mix.wav", "vocals.wav", "--device", "cpu", "--checkpoint-id", "msst-vocals"]) == 0
-    assert received == {"audio": "mix.wav", "output_path": "vocals.wav", "device": "cpu", "checkpoint_id": "msst-vocals", "checkpoint": None, "cache_dir": None, "batch_size": 4}
+    assert received == {
+        "audio": "mix.wav",
+        "output_path": "vocals.wav",
+        "device": "cpu",
+        "backend": None,
+        "checkpoint_id": "msst-vocals",
+        "checkpoint": None,
+        "cache_dir": None,
+        "batch_size": 4,
+    }
+
+
+def test_cli_forwards_backend_option(monkeypatch: object) -> None:
+    received: dict[str, object] = {}
+    monkeypatch.setattr(cli, "separate", lambda audio, **kwargs: received.update(audio=audio, **kwargs))
+    assert cli.main(["mix.wav", "vocals.wav", "--backend", "mlx", "--device", "mps"]) == 0
+    assert received["backend"] == "mlx"
+    assert received["device"] == "mps"

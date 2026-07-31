@@ -37,6 +37,10 @@ dependencies = [
 # this compatibility extra explicitly empty; README documents the required
 # upstream --no-build-isolation installation after Torch is present.
 cuda = []
+# Apple Silicon only. Floors, not ceilings (article 3): mlx-spectro is MIT,
+# pure Python, and depends only on mlx + numpy -- see mlx/convert.py and
+# backends/mlx_backend.py for what it's used for and why it isn't vendored.
+mlx = ["mlx>=0.31", "mlx-spectro>=0.7"]
 test = ["build>=1.2", "pytest>=8.0", "ruff>=0.5"]
 
 [project.scripts]
@@ -58,5 +62,8 @@ include = ["/src", "/tests", "/README.md", "/CLAUDE.md", "/CHANGELOG.md", "/LICE
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
-markers = ["golden: CUDA and external-fixture end-to-end regression"]
+addopts = "-ra -m 'not realweights'"
+markers = [
+  "golden: CUDA and external-fixture end-to-end regression",
+  "realweights: needs a real checkpoint already on disk and specific hardware (deselected by default, run with -m realweights)",
+]

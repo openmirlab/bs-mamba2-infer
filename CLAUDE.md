@@ -61,6 +61,23 @@ contract).
   waveform back to back. `backends/mlx_backend.py`'s `_chunk_geometry`
   mirrors that arithmetic exactly; do not port the sibling packages'
   overlap-add/fade-window machinery in by habit — it does not apply here.
+- **Torch-vs-MLX parity is measured, on the real checkpoint, end to end.**
+  `tests/test_mlx_parity.py` (marked `realweights`) run against real
+  `msst-vocals`: max abs difference 2.0191e-10 / 6.9122e-10 / 1.6007e-10 for
+  the signal, zero-padded-tail and near-silent-tail cases, i.e. 4.5095e-06 /
+  2.2695e-06 / 4.0820e-06 relative to a reference peak that sits near
+  -80 dBFS. Quote the relative figures, never the bare max-abs — against an
+  output that quiet, 2e-10 sounds impressive and says nothing.
+  Two traps if you re-run it, both paid for the hard way:
+  **(a)** the test reports through `print()`, and pytest discards a *passing*
+  test's stdout, so a run without `-s` measures correctly and throws the
+  reading away — one 87-minute run returned a verdict and no numbers. Use
+  `-v -s`, set `PYTHONUNBUFFERED=1` so each case lands on disk as it
+  finishes, and redirect to a file rather than piping through `tail`.
+  **(b)** it resolves the checkpoint once in a module-scoped fixture but
+  re-resolves on every session construction, so a cache cleared mid-run fails
+  a *later* case an hour in, not the first one. Do not clean `~/.cache` while
+  it is running. Budget 2 h 27 min for the three cases.
 - STFT/iSTFT depend on `mlx-spectro` (`SpectralTransform`, `center=True`,
   `center_pad_mode="reflect"`, `istft(..., torch_like=True)`), measured
   directly against `torch.stft`/`torch.istft` before being wired in (a
@@ -106,7 +123,19 @@ uv venv /tmp/bs-mamba2-wheel-venv
 uv pip install --python /tmp/bs-mamba2-wheel-venv/bin/python dist/*.whl
 /tmp/bs-mamba2-wheel-venv/bin/python -c 'import bs_mamba2_infer; print(bs_mamba2_infer.BSMamba2Session)'
 rg -n -i 'lightning|hydra|wandb|tensorboard|training_step|validation_step|dataset|evaluate' src pyproject.toml
+
+# MLX backend, on an Apple Silicon Mac with the [mlx] extra installed and the
+# default checkpoint already cached (this test never downloads):
+uv sync --extra dev --extra mlx
+uv run pytest -m realweights tests/test_mlx_parity.py -v
 ```
+
+`MLX_ENABLE_AMP=0` does not need to be set manually for the command above --
+`backends/mlx_backend.py` sets it itself (`os.environ.setdefault`) before
+constructing any MLX model. The realweights test needs an arm64 interpreter:
+it skips silently under x86_64 (including Rosetta), so a green run on the
+wrong arch exercises no MLX code and proves nothing about that path. Confirm
+`python -c "import platform; print(platform.machine())"` says `arm64` first.
 
 The CUDA golden command uses the checked local author fixture:
 

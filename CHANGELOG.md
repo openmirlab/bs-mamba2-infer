@@ -56,8 +56,14 @@
   owns its own execution target and accepts only `None`/`"auto"`/`"mps"`,
   raising for anything else rather than reinterpreting it. Torch-vs-MLX
   parity measured on the real `msst-vocals` checkpoint through the public
-  API, including a zero-padded-tail and a near-silent-tail fixture:
-  TODO_PARITY_NUMBERS.
+  API, on a synthetic 3 s stereo harmonic fixture (not real music) in three
+  tail conditions, each padding to exactly one 8 s chunk: max abs difference
+  2.0191e-10 (signal), 6.9122e-10 (zero-padded tail), 1.6007e-10
+  (near-silent tail); relative to the reference peak, 4.5095e-06 / 2.2695e-06
+  / 4.0820e-06, and rel-L2 4.2311e-06 / 2.3398e-06 / 4.6030e-06. The peaks
+  themselves are ~-80 dBFS, which is why relative figures are quoted rather
+  than a bare max-abs. 2 h 27 min for the three cases; the recurrence is a
+  per-timestep Python loop.
 - Added `backends/` (the compute seam: `SeparationBackend` protocol,
   `TorchBackend` wrapping today's `separate_waveform` unchanged,
   `MLXBackend`) and `mlx/` (the vendored-from-scratch MLX model, weight

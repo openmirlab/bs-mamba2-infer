@@ -154,16 +154,30 @@ with `python -c "import platform; print(platform.machine())"` — it must
 print `arm64`.
 
 Torch-vs-MLX parity, measured on the real `msst-vocals` checkpoint through
-this public API, including a zero-padded-tail and a near-silent-tail case
-(every track's final chunk is zero-padded in practice — see
-`tests/test_mlx_parity.py`): not yet measured and recorded end to end on
-real audio through the public API (the `realweights`-marked parity test
-exists but has not been run against the real checkpoint); the closest
-available evidence is a synthetic small-model check of the rfft-zero guard
-alone, which found it already at ordinary float32 noise floor (`max_abs`
-3.96e-09 with the guard vs. 5.82e-09 without, on a zero-padded fixture — see
-`tests/test_mlx_parity.py`'s module docstring), not a substitute for full
-Torch-vs-MLX parity.
+this public API. The fixture is synthetic — a 3 s stereo harmonic tone at
+44.1 kHz, **not real music** — in three tail conditions. Each pads to exactly
+one 8 s chunk, so the tail always lands inside the zero-padded region that
+every real track's final chunk also has:
+
+| tail | reference peak | max abs diff | rel to peak | rel L2 |
+|---|---|---|---|---|
+| signal | 4.477348e-05 | 2.0191e-10 | 4.5095e-06 | 4.2311e-06 |
+| zero-padded | 3.045707e-04 | 6.9122e-10 | 2.2695e-06 | 2.3398e-06 |
+| near-silent | 3.921362e-05 | 1.6007e-10 | 4.0820e-06 | 4.6030e-06 |
+
+The reference peaks are small because this model's output on that fixture
+sits near -80 dBFS; that is exactly why the relative columns are reported and
+a bare max-abs figure would mean nothing here. Reproduce with `pytest -m
+realweights tests/test_mlx_parity.py -v -s` — 2 h 27 min for the three cases,
+since the Mamba2 recurrence is a per-timestep Python loop. Keep the `-s`:
+without it pytest discards a passing test's printed measurements and the run
+yields a verdict but no numbers.
+
+Measured separately and reported here because it is a different claim: the
+Metal rfft-zero guard is **inert** for this package — `max_abs` 3.96e-09 with
+the guard vs. 5.82e-09 without on a zero-padded fixture, both already at
+ordinary float32 noise floor (see `tests/test_mlx_parity.py`'s module
+docstring). It is applied anyway.
 
 Speed: not yet benchmarked. The Mamba2 recurrence is a per-timestep Python
 loop (no fused CUDA/Triton kernel exists for MLX), so this is inherently

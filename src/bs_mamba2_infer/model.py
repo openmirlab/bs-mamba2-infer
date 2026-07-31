@@ -3,7 +3,7 @@
 # band split, bidirectional Mamba2 blocks, and mask estimation.  Native
 # mamba_ssm is an optional accelerator; the reference-compatible fallback uses
 # only PyTorch and preserves upstream state-dict names.
-# Reads: checkpoint.py for model configuration; session.py for construction.
+# Reads: api.py for construction.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,6 +15,9 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 
 
+# Invariant: sums to exactly N_FFT // 2 + 1 (1025, from audio.py's N_FFT=2048) --
+# the STFT frequency-bin count. A change to N_FFT without a matching change here
+# is a shape error deep in band-split with no pointer back to this line.
 DEFAULT_FREQS_PER_BANDS = (2,) * 24 + (4,) * 12 + (12,) * 8 + (24,) * 8 + (48,) * 8 + (128, 129)
 
 

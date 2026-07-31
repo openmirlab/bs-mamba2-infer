@@ -74,6 +74,22 @@ def _chunk_geometry(duration: int) -> tuple[int, int]:
     return window_size, padding_add
 
 
+def _check_stitched_length(stitched_length: int, duration: int, padding_add: int) -> None:
+    """Fail loud, mirroring `audio.py`'s `_istft` length contract, instead of
+    letting `separate()`'s final `stitched[:, :duration]` silently truncate a
+    wrong-length reconstruction. `padding_add` is the only slack
+    `_chunk_geometry` introduces (the final chunk's zero-padding), so any
+    stitched length outside `[duration, duration + padding_add]` means the
+    chunking/stitching arithmetic itself is wrong, not that a normal trailing
+    pad needs cropping.
+    """
+    if stitched_length < duration or stitched_length > duration + padding_add:
+        raise RuntimeError(
+            f"Unexpected stitched MLX output length {stitched_length}; expected "
+            f"between {duration} and {duration + padding_add} (duration + final-chunk padding)."
+        )
+
+
 class MLXBackend:
     """Runs BSMamba2 natively on Apple Silicon through MLX."""
 
@@ -215,4 +231,5 @@ class MLXBackend:
         # accumulator, and no exposure to the measured mx.array.at[...].add()
         # large-scatter corruption other org packages worked around.
         stitched = np.concatenate(reconstructed_chunks, axis=-1)
+        _check_stitched_length(stitched.shape[-1], duration, padding_add)
         return stitched[:, :duration]

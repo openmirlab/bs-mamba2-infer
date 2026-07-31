@@ -2,7 +2,7 @@
 # Reads the package-owned TOML once, resolves explicit/manual/cache locations by
 # one shared function, and streams only verified files into the cache.  It owns
 # no model code and never materializes a checkpoint while answering cache_info.
-# Reads: config/checkpoints.toml; session.py calls the resolver and loader.
+# Reads: config/checkpoints.toml; api.py calls the resolver and loader.
 from __future__ import annotations
 
 from dataclasses import dataclass

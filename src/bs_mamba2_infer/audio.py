@@ -2,7 +2,7 @@
 # Owns file/array conversion, 44.1 kHz validation, STFT/iSTFT, and the exact
 # chunk geometry from the upstream Separator.  No dataset or evaluation code
 # crosses this boundary.
-# Reads: model.py for the complex mask estimator; session.py for device/model.
+# Reads: model.py for the complex mask estimator; api.py for device/model.
 from __future__ import annotations
 
 from pathlib import Path

@@ -138,3 +138,27 @@ def test_importing_the_package_does_not_pull_in_an_optional_framework():
     result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=30, check=False)
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
     assert "OK" in result.stdout
+
+
+def test_check_stitched_length_accepts_the_expected_range():
+    """`_check_stitched_length` mirrors `audio.py`'s `_istft` fail-loud
+    contract for `MLXBackend.separate()`'s final stitch-then-crop step.
+    Offline: this is pure arithmetic, no MLX import required."""
+    from bs_mamba2_infer.backends.mlx_backend import _check_stitched_length
+
+    _check_stitched_length(stitched_length=100, duration=100, padding_add=0)  # exact
+    _check_stitched_length(stitched_length=105, duration=100, padding_add=5)  # padded to the limit
+
+
+def test_check_stitched_length_rejects_shorter_than_duration():
+    from bs_mamba2_infer.backends.mlx_backend import _check_stitched_length
+
+    with pytest.raises(RuntimeError, match="Unexpected stitched MLX output length"):
+        _check_stitched_length(stitched_length=99, duration=100, padding_add=5)
+
+
+def test_check_stitched_length_rejects_longer_than_final_chunk_padding():
+    from bs_mamba2_infer.backends.mlx_backend import _check_stitched_length
+
+    with pytest.raises(RuntimeError, match="Unexpected stitched MLX output length"):
+        _check_stitched_length(stitched_length=106, duration=100, padding_add=5)

@@ -53,6 +53,9 @@ from itertools import pairwise
 import mlx.core as mx
 from mlx import nn
 
+# Invariant: sums to exactly N_FFT // 2 + 1 (1025, from audio.py's N_FFT=2048) --
+# the STFT frequency-bin count. A change to N_FFT without a matching change here
+# is a shape error deep in band-split with no pointer back to this line.
 DEFAULT_FREQS_PER_BANDS = (2,) * 24 + (4,) * 12 + (12,) * 8 + (24,) * 8 + (48,) * 8 + (128, 129)
 
 

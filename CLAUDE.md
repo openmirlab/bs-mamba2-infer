@@ -1,5 +1,8 @@
 # bs-mamba2-infer maintainer guide
 
+**`docs/`** is local-only by policy (2026-09-14): kept on disk, gitignored,
+never pushed to GitHub.
+
 This is a standalone, inference-only port of Euiyeon Kim and Yong-Hoon Choi's
 BSMamba2 vocal separator, based on `EuiYeonKim/BSMamba2` revision
 `42eb8c84a1bf0d388a994b4c29edd0d9d6a0a2b5` (MIT). The associated paper is

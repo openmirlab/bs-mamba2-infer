@@ -43,11 +43,7 @@ def loaded_session(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> BSMamba2S
     _FakeModel.backends = []
     monkeypatch.setattr(api, "BSMamba2", _FakeModel)
     monkeypatch.setattr(api, "obtain", lambda *args, **kwargs: path)
-    # separate_waveform is called from backends/torch_backend.py now (moved
-    # behind the backend seam, see backends/base.py) -- not from api.py.
-    import bs_mamba2_infer.backends.torch_backend as torch_backend_module
-
-    monkeypatch.setattr(torch_backend_module, "separate_waveform", lambda *args, **kwargs: torch.zeros((1, 2, 8)))
+    monkeypatch.setattr(api, "separate_waveform", lambda *args, **kwargs: torch.zeros((1, 2, 8)))
     return BSMamba2Session(device="cpu")
 
 
@@ -91,32 +87,9 @@ def test_unavailable_cuda_is_not_silently_replaced(device: str, monkeypatch: pyt
         BSMamba2Session(device=device)
 
 
-def test_explicit_mps_resolves_when_available(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(api, "mps_available", lambda: True)
-    assert api._resolve_device("mps") == torch.device("mps")
-
-
-def test_explicit_mps_raises_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
-    """An explicit accelerator is honoured or the call fails -- never downgraded."""
-    monkeypatch.setattr(api, "mps_available", lambda: False)
-    with pytest.raises(RuntimeError, match="mps"):
-        api._resolve_device("mps")
-
-
-def test_auto_never_promotes_to_mps(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Legacy auto-selection is preserved (D8): MPS is opt-in, so existing Mac
-    callers keep the exact compute path -- and the exact outputs -- they had
-    before MPS support existed."""
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-    monkeypatch.setattr(api, "mps_available", lambda: True)
-    assert api._resolve_device("auto") == torch.device("cpu")
-
-
-def test_mps_indexed_device_is_rejected() -> None:
-    """MPS has no CUDA-style indexed devices; 'mps:0' must not be silently
-    accepted as if it meant plain 'mps'."""
-    with pytest.raises(ValueError, match="mps"):
-        api._resolve_device("mps:0")
+def test_mps_is_not_claimed() -> None:
+    with pytest.raises(ValueError, match="MPS"):
+        BSMamba2Session(device="mps")
 
 
 def test_array_needs_rate(loaded_session: BSMamba2Session) -> None:

@@ -19,60 +19,11 @@
   weights is not this package's call. Asking the author for a grant is the
   recorded follow-up.
 
-- **CONTRACT CHANGE**, called out deliberately per article 8: `device="mps"`
-  previously raised `ValueError` and `tests/test_contract.py` asserted that
-  it must (`test_mps_is_not_claimed`). That negative contract is reversed on
-  measured evidence. Real-checkpoint (`msst-vocals`) CPU-vs-MPS parity,
-  through the public API, in-memory float comparison (never a written WAV --
-  this model's output sits near -80 dBFS, about three 16-bit quantization
-  levels, so a file-based comparison measures the container, not the
-  backend), 3 s stereo harmonic fixture (220 Hz fundamental + 11 harmonics +
-  5 Hz vibrato + light noise -- Gaussian noise alone produces near-silent
-  output on both devices and measures nothing), seed 20260730, torch 2.13.0,
-  Apple M2:
-  ```
-  peak amplitude : 8.861387e-05
-  max_abs        : 3.6380e-10
-  rel_to_peak    : 4.1054e-06
-  rel_L2         : 4.7284e-06
-  ```
-  In line with `bs-roformer-infer`'s own CPU-vs-MPS measurement
-  (`rel_to_peak` ~4.5e-06 on its checkpoint). `_resolve_device` now accepts
-  `"mps"`, raising `RuntimeError` (never a silent CPU downgrade) when
-  explicitly requested but unavailable. **`device="auto"` is deliberately
-  unchanged** -- still cuda-else-cpu; a Mac caller's outputs do not move
-  under them just because this release added MPS support. Also fixed a
-  latent bug this change surfaced: `BSMamba2Session.load()` picked the
-  optional native `mamba_ssm` backend (CUDA/Triton-only) for any non-CPU
-  Torch device, which would have been wrong on MPS; it is now `"auto"` only
-  for `device.type == "cuda"`, forcing the portable graph on both `cpu` and
-  `mps`.
-- Added an optional MLX backend (`backend="mlx"`, `[mlx]` extra) for native
-  Apple Silicon execution: a from-scratch port of the Mamba2 recurrence, band
-  split, and mask estimator (there is no upstream MLX BSMamba2 to vendor),
-  using `mlx-spectro` for STFT/iSTFT. `backend` is an additive, opt-in axis
-  (`torch` default, `mlx`, `auto`); `device` keeps its existing Torch-only
-  meaning and is never overloaded to mean "Apple Silicon" -- `backend="mlx"`
-  owns its own execution target and accepts only `None`/`"auto"`/`"mps"`,
-  raising for anything else rather than reinterpreting it. Torch-vs-MLX
-  parity measured on the real `msst-vocals` checkpoint through the public
-  API, on a synthetic 3 s stereo harmonic fixture (not real music) in three
-  tail conditions, each padding to exactly one 8 s chunk: max abs difference
-  2.0191e-10 (signal), 6.9122e-10 (zero-padded tail), 1.6007e-10
-  (near-silent tail); relative to the reference peak, 4.5095e-06 / 2.2695e-06
-  / 4.0820e-06, and rel-L2 4.2311e-06 / 2.3398e-06 / 4.6030e-06. The peaks
-  themselves are ~-80 dBFS, which is why relative figures are quoted rather
-  than a bare max-abs. 2 h 27 min for the three cases; the recurrence is a
-  per-timestep Python loop.
-- Added `backends/` (the compute seam: `SeparationBackend` protocol,
-  `TorchBackend` wrapping today's `separate_waveform` unchanged,
-  `MLXBackend`) and `mlx/` (the vendored-from-scratch MLX model, weight
-  converter with an auditing strict-load gate, and the Metal rfft-artifact
-  guard). `import bs_mamba2_infer` stays MLX-free (subprocess-verified).
-- Measured (not assumed) that MLX 0.31.2's Metal rfft-zero artifact, load-
-  bearing in `bs-roformer-infer`, is **inert** for this package's own STFT
-  call shape -- see `mlx/rfft_guard.py`'s module docstring for the numbers.
-  Applied the guard anyway, per standing org policy.
+- Removed Apple MLX/MPS backend support (out of scope per org canon,
+  openmirlab-dev art. 4b): `device="mps"` raises `ValueError` again
+  (`test_mps_is_not_claimed`), reversing the 2026-07-31 contract lift. The
+  `backend=` argument, the `SeparationBackend` dispatch layer, the `mlx/`
+  package, and the `[mlx]` packaging extra are removed entirely.
 
 ## 0.1.0 - 2026-07-22
 

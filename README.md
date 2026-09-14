@@ -38,10 +38,9 @@ This citation is from the [primary arXiv record](https://arxiv.org/abs/2508.1455
 - One task: stereo vocal extraction at 44.1 kHz.
 - `separate(...)` one-shot API and load-once `BSMamba2Session` API.
 - Checksum-verified cache/download registry and manual checkpoint paths.
-- `auto`, `cpu`, `cuda`, `cuda:N`, and `mps` device selection. `auto` stays
-  cuda-else-cpu deliberately (MPS is opt-in, never auto-promoted — see
-  CHANGELOG for the measured CPU-vs-MPS parity that lifted the earlier
-  MPS refusal).
+- `auto`, `cpu`, `cuda`, and `cuda:N` device selection. MPS is deliberately
+  unsupported (`device="mps"` raises) -- Apple Silicon/MLX/MPS support is
+  out of scope for this package.
 
 ## Scope
 
@@ -100,91 +99,6 @@ instead of silently changing audio.
 ```bash
 bs-mamba2-infer mixture.wav vocals.wav --device cuda:0
 ```
-
-## Backends and devices
-
-Two independent choices:
-
-| Argument | Values | Meaning |
-|---|---|---|
-| `backend` | `torch` (default), `mlx`, `auto` | which framework computes |
-| `device` | `auto`, `cpu`, `cuda`, `cuda:N`, `mps` | where Torch computes (backend="torch" only) |
-
-`backend` defaults to `torch`, so nothing changes unless you ask. `auto` picks
-`mlx` only when it is genuinely importable on this machine, falling back to
-`torch` otherwise. Requesting a backend that cannot run here raises
-immediately — before any checkpoint is downloaded — rather than quietly
-using a different one. `backend="mlx"` owns its own Apple Silicon execution
-and accepts only `device` of `auto`/`mps` (or none), refusing anything else
-rather than ignoring it.
-
-### The MLX backend
-
-Native Apple Silicon execution through [MLX](https://github.com/ml-explore/mlx)
-and [mlx-spectro](https://github.com/ssmall256/mlx-spectro) for STFT/iSTFT —
-a from-scratch port of this package's own Mamba2 graph (there is no upstream
-MLX BSMamba2 to vendor). Install it with the extra, never part of the core
-install:
-
-```bash
-pip install "bs-mamba2-infer[mlx]"
-```
-
-```python
-BSMamba2Session(backend="mlx").load()
-```
-
-```bash
-bs-mamba2-infer mixture.wav vocals.wav --backend mlx
-```
-
-`backend="mlx"` accepts only `device` of `None`, `"auto"`, or `"mps"` and
-raises for anything else (`"cuda"`, `"cpu"`, ...) rather than reinterpreting
-it — MLX owns its own execution target, Torch device strings mean nothing to
-it.
-
-MPS and MLX both need an **arm64 Python interpreter**. Under Rosetta/x86_64
-they report as unavailable rather than failing loudly — an x86_64
-interpreter makes `torch.backends.mps.is_available()` return `False`, and
-MLX publishes no macOS x86_64 wheel at all, so the `[mlx]` extra cannot even
-install there. An accelerated path just looks absent rather than
-misconfigured. This is easy to hit without noticing: an x86_64 `uv`
-resolves x86_64 interpreters, so `uv sync` can silently produce an
-environment where the accelerated paths structurally cannot exist. Check
-with `python -c "import platform; print(platform.machine())"` — it must
-print `arm64`.
-
-Torch-vs-MLX parity, measured on the real `msst-vocals` checkpoint through
-this public API. The fixture is synthetic — a 3 s stereo harmonic tone at
-44.1 kHz, **not real music** — in three tail conditions. Each pads to exactly
-one 8 s chunk, so the tail always lands inside the zero-padded region that
-every real track's final chunk also has:
-
-| tail | reference peak | max abs diff | rel to peak | rel L2 |
-|---|---|---|---|---|
-| signal | 4.477348e-05 | 2.0191e-10 | 4.5095e-06 | 4.2311e-06 |
-| zero-padded | 3.045707e-04 | 6.9122e-10 | 2.2695e-06 | 2.3398e-06 |
-| near-silent | 3.921362e-05 | 1.6007e-10 | 4.0820e-06 | 4.6030e-06 |
-
-The reference peaks are small because this model's output on that fixture
-sits near -80 dBFS; that is exactly why the relative columns are reported and
-a bare max-abs figure would mean nothing here. Reproduce with `pytest -m
-realweights tests/test_mlx_parity.py -v -s` — 2 h 27 min for the three cases,
-since the Mamba2 recurrence is a per-timestep Python loop. Keep the `-s`:
-without it pytest discards a passing test's printed measurements and the run
-yields a verdict but no numbers.
-
-Measured separately and reported here because it is a different claim: the
-Metal rfft-zero guard is **inert** for this package — `max_abs` 3.96e-09 with
-the guard vs. 5.82e-09 without on a zero-padded fixture, both already at
-ordinary float32 noise floor (see `tests/test_mlx_parity.py`'s module
-docstring). It is applied anyway.
-
-Speed: not yet benchmarked. The Mamba2 recurrence is a per-timestep Python
-loop (no fused CUDA/Triton kernel exists for MLX), so this is inherently
-loop-bound on both frameworks; see `mlx/model.py`'s module docstring for the
-one deliberate, verified-safe optimization taken (vectorizing the recurrence
-across attention heads).
 
 ## Checkpoints and cache
 

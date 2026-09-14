@@ -60,11 +60,26 @@ rg -n -i 'lightning|hydra|wandb|tensorboard|training_step|validation_step|datase
 The CUDA golden command uses the checked local author fixture:
 
 ```bash
-PYTHONPATH=src /path/to/python -c 'from bs_mamba2_infer import BSMamba2Session; from pathlib import Path; r=Path("../.dev-cache/bs-mamba-bandit-probe"); s=BSMamba2Session(checkpoint=r/"weights/official-bsmamba2/vocals/2025-03-14_05-40/weights/sota_model.ckpt", device="cuda").load(); s.infer(r/"listening/00_mixture.wav", output_path="/tmp/bsmamba2-vocals.wav")'
+PYTHONPATH=src /path/to/python -c 'from bs_mamba2_infer import BSMamba2Session; from pathlib import Path; r=Path("../.dev-cache/bs-mamba-bandit-probe"); s=BSMamba2Session(checkpoint_id="official-vocals", checkpoint=r/"weights/official-bsmamba2/vocals/2025-03-14_05-40/weights/sota_model.ckpt", device="cuda").load(); s.infer(r/"listening/00_mixture.wav", output_path="/tmp/bsmamba2-vocals.wav")'
 ```
+
+`checkpoint_id="official-vocals"` must be explicit: the session default is
+`msst-vocals`, and `obtain()` verifies whatever file `checkpoint=` points at
+against the *selected spec's* sha256 -- omitting `checkpoint_id` here checks
+this fixture's bytes against the wrong checkpoint's hash and fails before
+inference runs.
 
 Recorded fixture environment: Linux, Python 3.11, torch 2.7.1+cu126, CUDA,
 `mamba_ssm` optional accelerator, checkpoint SHA above, 44.1 kHz two-channel
 input. The current output differs from the untouched upstream reconstruction by
 at most one 16-bit PCM least-significant bit (`6.103515625e-05`), RMS
 `1.5819565e-05`; this is a documented tolerance closure, not bit identity.
+
+`tests/test_golden.py` applies this same strict tolerance only when the
+session actually resolved the native `mamba_ssm` CUDA kernel
+(`BSMamba2.mamba_backend == "native"`). Without `mamba_ssm` installed, BSMamba2
+runs its pure-PyTorch Mamba2 fallback instead, which is faithful but not
+bit-for-bit against the kernel-recorded fixture; the test then applies a wider,
+documented tolerance (~4x a measured torch 2.13.0+cu130 pure-torch-fallback
+run: max_abs 8.60e-05, rms 2.06e-05) instead of failing a real accelerator
+absence. The test prints which path it took.

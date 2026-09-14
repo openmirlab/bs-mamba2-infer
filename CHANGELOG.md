@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Golden test fixed: explicit checkpoint_id, path-aware tolerance
+
+- `tests/test_golden.py` (and the equivalent CLAUDE.md command) constructed
+  `BSMamba2Session` without `checkpoint_id`, silently defaulting to
+  `msst-vocals` even though the golden fixture's checkpoint is
+  `official-vocals` -- `obtain()` then verified the fixture's bytes against
+  the wrong spec's sha256 and failed before inference ever ran. Both now pass
+  `checkpoint_id="official-vocals"` explicitly.
+- The test's tolerance is now path-aware: strict (as recorded) when the
+  session resolves the native `mamba_ssm` CUDA kernel, a wider documented
+  tolerance (~4x a measured pure-torch-fallback run) when `mamba_ssm` isn't
+  installed and BSMamba2 runs its pure-PyTorch fallback instead. The test
+  prints which path it took.
+
 ### Default checkpoint switched to msst-vocals; official-vocals marked unavailable
 
 - **Behavior change, called out deliberately** (allowed by article 7: this

@@ -15,11 +15,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--checkpoint-id", default="msst-vocals")
     parser.add_argument("--checkpoint", help="manual checkpoint path (including offline MSST checkpoint)")
     parser.add_argument("--cache-dir")
-    parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N (backend=mlx only accepts auto/mps)")
-    parser.add_argument("--backend", default=None, choices=["torch", "mlx", "auto"], help="torch (default), mlx (Apple Silicon, needs the [mlx] extra), or auto")
+    parser.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N")
     parser.add_argument("--batch-size", type=int, default=4)
     args = parser.parse_args(argv)
-    separate(args.input, checkpoint_id=args.checkpoint_id, checkpoint=args.checkpoint, cache_dir=args.cache_dir, device=args.device, backend=args.backend, batch_size=args.batch_size, output_path=args.output)
+    separate(args.input, checkpoint_id=args.checkpoint_id, checkpoint=args.checkpoint, cache_dir=args.cache_dir, device=args.device, batch_size=args.batch_size, output_path=args.output)
     return 0
 
 

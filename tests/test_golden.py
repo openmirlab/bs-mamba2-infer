@@ -26,7 +26,12 @@ def test_official_checkpoint_matches_upstream_reconstruction() -> None:
     mixture = root_path / "listening" / "00_mixture.wav"
     checkpoint = root_path / "weights" / "official-bsmamba2" / "vocals" / "2025-03-14_05-40" / "weights" / "sota_model.ckpt"
     upstream = Path(os.environ["BS_MAMBA2_UPSTREAM_OUTPUT"])
-    with BSMamba2Session(checkpoint=checkpoint, device="cuda", batch_size=1) as session:
+    # The fixture's checkpoint IS "official-vocals" (see tests/golden/official_fixture.json's
+    # checkpoint_sha256). checkpoint_id defaults to "msst-vocals" -- omitting it here would make
+    # obtain() verify this file's bytes against the WRONG spec's sha256 and fail before inference
+    # ever runs, silently turning a passing golden test into a checksum-mismatch failure. Must be
+    # explicit.
+    with BSMamba2Session(checkpoint_id="official-vocals", checkpoint=checkpoint, device="cuda", batch_size=1) as session:
         actual = session.infer(mixture).vocals.T
     expected, rate = sf.read(upstream, dtype="float32", always_2d=True)
     difference = actual - expected

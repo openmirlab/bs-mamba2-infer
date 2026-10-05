@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+
+- Correct README installation guidance for the current Git-only distribution of `bs-mamba2-infer`.
 ### Golden test fixed: explicit checkpoint_id, path-aware tolerance
 
 - `tests/test_golden.py` (and the equivalent CLAUDE.md command) constructed

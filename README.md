@@ -53,12 +53,15 @@ weights.
 
 ## Install
 
+`bs-mamba2-infer` is not published on PyPI. Install from the repository:
+
 ```bash
-pip install bs-mamba2-infer
+git clone https://github.com/openmirlab/bs-mamba2-infer.git
+cd bs-mamba2-infer
+python -m pip install .
 ```
 
-The default installation has no compiled Mamba dependency. `pip install
-'bs-mamba2-infer[cuda]'` remains a successful compatibility command, but the
+The default installation has no compiled Mamba dependency. The `[cuda]`
 extra is deliberately empty: `mamba-ssm` omits Torch from its PEP 517 build
 metadata, so declaring it as a normal dependency makes pip and universal locks
 attempt a broken isolated build.
@@ -70,7 +73,7 @@ non-isolated build step:
 ```bash
 pip install torch  # choose the wheel matching your CUDA runtime
 pip install --no-build-isolation 'mamba-ssm==2.2.2'
-pip install bs-mamba2-infer
+python -m pip install .  # from the cloned repository above
 ```
 
 Python 3.13 remains a successful pure-PyTorch install, including with the
